@@ -79,19 +79,22 @@ class UserModel extends BaseModel {
 
     // Generate JWT token
     this.schema.methods.generateAuthToken = function() {
+      // Accept either a numeric seconds value or a string like '7d'.
+      const expiresIn = process.env.JWT_EXPIRE || '7d';
       return jwt.sign(
         { id: this._id, email: this.email },
         process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRE }
+        { expiresIn }
       );
     };
 
     // Generate refresh token
     this.schema.methods.generateRefreshToken = function() {
+      const refreshExpiresIn = process.env.JWT_REFRESH_EXPIRE || '30d';
       const refreshToken = jwt.sign(
         { id: this._id },
         process.env.JWT_REFRESH_SECRET,
-        { expiresIn: process.env.JWT_REFRESH_EXPIRE }
+        { expiresIn: refreshExpiresIn }
       );
       this.refreshToken = refreshToken;
       return refreshToken;
