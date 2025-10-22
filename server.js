@@ -65,9 +65,21 @@ class Server {
     this.app.use('/api', limiter);
 
     // CORS
+    // Support a single FRONTEND_URL or comma-separated FRONTEND_URLS for multiple deployments.
+    const rawFrontends = process.env.FRONTEND_URLS || process.env.FRONTEND_URL || 'http://localhost:3000';
+    const allowedOrigins = rawFrontends.split(',').map(s => s.trim()).filter(Boolean);
+
     this.app.use(cors({
-      origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-      credentials: true
+      origin: (origin, callback) => {
+        // Allow requests with no origin (e.g., server-to-server or curl)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('CORS policy: This origin is not allowed: ' + origin), false);
+      },
+      credentials: true,
+      optionsSuccessStatus: 200
     }));
 
     // Body parsing
