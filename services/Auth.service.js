@@ -4,7 +4,6 @@ const EmailConfig = require('../config/email.config');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { ErrorHandler } = require('../middleware/error.middleware');
-const { ErrorHandler } = require('../middleware/error.middleware');
 
 class AuthService {
   // Register new user
