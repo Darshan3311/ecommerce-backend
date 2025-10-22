@@ -71,19 +71,28 @@ class Server {
   initializeMiddleware() {
     // Security middleware
     this.app.use(helmet());
-
-    // Rate limiting
+    // Rate limiting - will be applied after CORS so preflight requests
+    // receive the proper CORS headers. (registered below)
     const limiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: 100 // limit each IP to 100 requests per windowMs
     });
-    this.app.use('/api', limiter);
 
     // CORS
     // Support a single FRONTEND_URL or comma-separated FRONTEND_URLS for multiple deployments.
     const rawFrontends = process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '';
     const allowedOrigins = rawFrontends ? rawFrontends.split(',').map(s => s.trim()).filter(Boolean) : [];
     const allowAll = process.env.ALLOW_ALL_ORIGINS === 'true' || false;
+
+    // Development-friendly fallback: if running locally and no explicit
+    // FRONTEND_URLS include localhost dev origins so CRA dev server can talk
+    // to the backend without extra env configuration.
+    if (process.env.NODE_ENV !== 'production') {
+      const devDefaultOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+      devDefaultOrigins.forEach(o => {
+        if (!allowedOrigins.includes(o)) allowedOrigins.push(o);
+      });
+    }
 
     // Helpful debug logging for deployed environments where FRONTEND_URLS may not be set
     console.log('\u2139\ufe0f CORS allowed origins:', allowedOrigins.length ? allowedOrigins : '[none configured]');
@@ -122,6 +131,9 @@ class Server {
       credentials: true,
       optionsSuccessStatus: 200
     }));
+
+  // Apply rate limiter after CORS so OPTIONS preflight requests are not blocked
+  this.app.use('/api', limiter);
 
     // Log origin of incoming requests for easier debugging in deployed environments
     this.app.use((req, res, next) => {

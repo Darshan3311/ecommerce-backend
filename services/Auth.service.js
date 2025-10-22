@@ -47,7 +47,23 @@ class AuthService {
       // Find user with password and populate role
       const user = await User.findOne({ email }).select('+password').populate('role');
 
-      if (!user || !(await user.matchPassword(password))) {
+      // Debug logs to help diagnose login failures in dev
+      try {
+        console.log(`[AuthService.login] Login attempt for email=${email} - userFound=${!!user}`);
+        if (user) {
+          console.log(`[AuthService.login] userId=${user._id} isActive=${user.isActive} role=${user.role?.name}`);
+        }
+      } catch (e) {
+        // ignore logging errors
+      }
+
+      // Verify password
+      const passwordMatches = user ? await user.matchPassword(password) : false;
+      try {
+        console.log(`[AuthService.login] passwordMatches=${passwordMatches}`);
+      } catch (e) {}
+
+      if (!user || !passwordMatches) {
         throw new ErrorHandler('Invalid email or password', 401);
       }
 

@@ -22,11 +22,14 @@ class AuthController {
       const result = await AuthService.login(email, password);
 
       // Set token in cookie
-      // Use SameSite=None to allow cookies when frontend and backend are on different origins (deployed sites)
+      // Choose cookie settings depending on environment.
+      // In production we need SameSite=None and secure to allow cross-site cookies over HTTPS.
+      // In development (local http://localhost) use SameSite='Lax' and secure=false so browsers accept the cookie.
+      const isProd = process.env.NODE_ENV === 'production';
       res.cookie('token', result.token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'None',
+        secure: isProd, // only send secure flag in production (HTTPS)
+        sameSite: isProd ? 'None' : 'Lax',
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
       });
 
@@ -116,10 +119,11 @@ class AuthController {
   async logout(req, res, next) {
     try {
       // Clear cookie with same options to ensure it's removed in browsers
+      const isProd = process.env.NODE_ENV === 'production';
       res.cookie('token', '', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'None',
+        secure: isProd,
+        sameSite: isProd ? 'None' : 'Lax',
         expires: new Date(0)
       });
 
