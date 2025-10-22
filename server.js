@@ -33,6 +33,9 @@ const { errorHandler } = require('./middleware/error.middleware');
 class Server {
   constructor() {
     this.app = express();
+    // Behind a proxy (Render) — trust the first proxy hop so express-rate-limit
+    // can read the X-Forwarded-For header correctly.
+    this.app.set('trust proxy', 1);
     this.port = process.env.PORT || 5000;
     this.initializeDatabase();
     this.initializeCloudinary();
@@ -118,6 +121,7 @@ class Server {
   start() {
     this.app.listen(this.port, () => {
       console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${this.port}`);
+      console.log(`🔧 FRONTEND_URL = ${process.env.FRONTEND_URL || 'not set'}`);
     });
   }
 }
