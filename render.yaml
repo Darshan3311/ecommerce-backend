@@ -1,19 +1,25 @@
 services:
   - type: web
     name: ecommerce-backend
-    env: node
+    runtime: node
     region: oregon
     plan: free
     branch: main
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
+      # Server Configuration
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+      
+      # Database - REQUIRED: Add your MongoDB Atlas URI
       - key: MONGODB_URI
         sync: false
+      
+      # JWT Configuration - Auto-generated secrets
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRE
@@ -22,6 +28,8 @@ services:
         generateValue: true
       - key: JWT_REFRESH_EXPIRE
         value: 30d
+      
+      # Email Configuration - Optional: For user verification emails
       - key: EMAIL_HOST
         value: smtp.gmail.com
       - key: EMAIL_PORT
@@ -34,13 +42,25 @@ services:
         value: noreply@ecommerce.com
       - key: CLIENT_URL
         sync: false
+      
+      # Cloudinary Configuration - REQUIRED: For image uploads
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
+      
+      # Payment Gateway - Optional: For Stripe payments
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      
+      # Frontend Configuration - REQUIRED: For CORS
       - key: FRONTEND_URL
         sync: false
+      
+      # Session Secret - Auto-generated
       - key: SESSION_SECRET
         generateValue: true
