@@ -66,21 +66,54 @@ class Server {
 
     // CORS
     // Support a single FRONTEND_URL or comma-separated FRONTEND_URLS for multiple deployments.
-    const rawFrontends = process.env.FRONTEND_URLS || process.env.FRONTEND_URL || 'http://localhost:3000';
-    const allowedOrigins = rawFrontends.split(',').map(s => s.trim()).filter(Boolean);
+    const rawFrontends = process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '';
+    const allowedOrigins = rawFrontends ? rawFrontends.split(',').map(s => s.trim()).filter(Boolean) : [];
+    const allowAll = process.env.ALLOW_ALL_ORIGINS === 'true' || false;
+
+    // Helpful debug logging for deployed environments where FRONTEND_URLS may not be set
+    console.log('\u2139\ufe0f CORS allowed origins:', allowedOrigins.length ? allowedOrigins : '[none configured]');
 
     this.app.use(cors({
       origin: (origin, callback) => {
         // Allow requests with no origin (e.g., server-to-server or curl)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
+
+        // If configured to allow all origins, skip checks
+        if (allowAll) return callback(null, true);
+
+        // If no explicit allowed origins configured, allow dynamic origins (helpful when env wasn't set in production)
+        if (!allowedOrigins.length) {
+          console.warn('\u26A0 No FRONTEND_URLS configured. Allowing dynamic origin for:', origin);
           return callback(null, true);
         }
+
+        // Allow explicit configured origins
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+
+        // Allow Render-hosted frontends automatically (they use onrender.com)
+        try {
+          if (typeof origin === 'string' && origin.includes('.onrender.com')) {
+            console.log('\u2714 Allowing Render origin via onrender.com match:', origin);
+            return callback(null, true);
+          }
+        } catch (e) {
+          // ignore
+        }
+
+        // Not allowed
+        console.warn('\u26A0 CORS blocked origin:', origin);
         return callback(new Error('CORS policy: This origin is not allowed: ' + origin), false);
       },
       credentials: true,
       optionsSuccessStatus: 200
     }));
+
+    // Log origin of incoming requests for easier debugging in deployed environments
+    this.app.use((req, res, next) => {
+      const origin = req.headers.origin || 'no-origin';
+      console.log(`\u2139 Incoming request: ${req.method} ${req.originalUrl} - Origin: ${origin}`);
+      next();
+    });
 
     // Body parsing
     this.app.use(express.json({ limit: '10mb' }));

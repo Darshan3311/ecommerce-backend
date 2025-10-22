@@ -15,9 +15,9 @@ const errorHandler = (err, req, res, next) => {
   error.statusCode = err.statusCode || 500;
 
   // Log error for debugging
-  if (process.env.NODE_ENV === 'development') {
-    console.error('Error:', err);
-  }
+  // Always log the error and stack to server logs to aid debugging in production
+  console.error('Error:', err && err.message ? err.message : err);
+  if (err && err.stack) console.error(err.stack);
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
