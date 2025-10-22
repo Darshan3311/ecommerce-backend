@@ -9,6 +9,21 @@ const rateLimit = require('express-rate-limit');
 // Load environment variables
 dotenv.config();
 
+// Ensure JWT secrets exist; if not, generate an ephemeral secret and warn (helps quick deploys but not secure)
+if (!process.env.JWT_SECRET) {
+  const crypto = require('crypto');
+  const gen = crypto.randomBytes(48).toString('hex');
+  process.env.JWT_SECRET = gen;
+  console.warn('\u26A0 WARNING: JWT_SECRET not set. Generated ephemeral secret for this process. Set JWT_SECRET in your environment for persistent, secure tokens.');
+}
+
+if (!process.env.JWT_REFRESH_SECRET) {
+  const crypto = require('crypto');
+  const gen = crypto.randomBytes(48).toString('hex');
+  process.env.JWT_REFRESH_SECRET = gen;
+  console.warn('\u26A0 WARNING: JWT_REFRESH_SECRET not set. Generated ephemeral refresh secret for this process. Set JWT_REFRESH_SECRET in your environment for persistent, secure tokens.');
+}
+
 // Import configurations
 const DatabaseConnection = require('./config/database.config');
 const CloudinaryConfig = require('./config/cloudinary.config');

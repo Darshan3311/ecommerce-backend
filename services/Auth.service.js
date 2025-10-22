@@ -2,6 +2,8 @@ const User = require('../models/User.model');
 const Role = require('../models/Role.model');
 const EmailConfig = require('../config/email.config');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+const { ErrorHandler } = require('../middleware/error.middleware');
 const { ErrorHandler } = require('../middleware/error.middleware');
 
 class AuthService {
