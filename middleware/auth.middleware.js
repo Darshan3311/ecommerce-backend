@@ -131,7 +131,7 @@ class AuthMiddleware {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         User.findById(decoded.id)
-          .populate('roles')
+          .populate('role')
           .select('-password')
           .then(user => {
             if (user && user.isActive) {

@@ -128,22 +128,21 @@ class UserModel extends BaseModel {
       return resetToken;
     };
 
-    // Check if user has role
+    // Check if user has role (schema uses singular 'role')
     this.schema.methods.hasRole = async function(roleName) {
-      await this.populate('roles');
-      return this.roles.some(role => role.name === roleName);
+      await this.populate('role');
+      return (this.role && this.role.name === roleName);
     };
 
-    // Check if user has permission
+    // Check if user has permission via their role
     this.schema.methods.hasPermission = async function(permissionName) {
       await this.populate({
-        path: 'roles',
+        path: 'role',
         populate: { path: 'permissions' }
       });
-      
-      return this.roles.some(role => 
-        role.permissions.some(permission => permission.name === permissionName)
-      );
+
+      if (!this.role || !this.role.permissions) return false;
+      return this.role.permissions.some(permission => permission.name === permissionName);
     };
   }
 
