@@ -55,16 +55,21 @@ class AuthService {
         throw new ErrorHandler('Account has been deactivated', 401);
       }
 
-      // Check if user has a pending seller application
-      const Seller = require('../models/Seller.model');
-      const sellerProfile = await Seller.findOne({ user: user._id });
-      
-      if (sellerProfile && sellerProfile.status === 'pending') {
-        throw new ErrorHandler('Your seller application is pending admin approval. Please wait for approval to login.', 403);
-      }
+      // If the user is a seller, enforce seller application status checks.
+      // This prevents admin/support/customer users from being blocked if
+      // a Seller profile exists for their user record.
+      const userRoleName = (user.role && user.role.name) ? String(user.role.name).toLowerCase() : null;
+      if (userRoleName === 'seller') {
+        const Seller = require('../models/Seller.model');
+        const sellerProfile = await Seller.findOne({ user: user._id });
 
-      if (sellerProfile && sellerProfile.status === 'rejected') {
-        throw new ErrorHandler('Your seller application has been rejected. Please contact support.', 403);
+        if (sellerProfile && sellerProfile.status === 'pending') {
+          throw new ErrorHandler('Your seller application is pending admin approval. Please wait for approval to login.', 403);
+        }
+
+        if (sellerProfile && sellerProfile.status === 'rejected') {
+          throw new ErrorHandler('Your seller application has been rejected. Please contact support.', 403);
+        }
       }
 
       // Update last login
