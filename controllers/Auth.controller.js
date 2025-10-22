@@ -22,9 +22,11 @@ class AuthController {
       const result = await AuthService.login(email, password);
 
       // Set token in cookie
+      // Use SameSite=None to allow cookies when frontend and backend are on different origins (deployed sites)
       res.cookie('token', result.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
+        sameSite: 'None',
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
       });
 
@@ -113,8 +115,11 @@ class AuthController {
   // Logout
   async logout(req, res, next) {
     try {
+      // Clear cookie with same options to ensure it's removed in browsers
       res.cookie('token', '', {
         httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'None',
         expires: new Date(0)
       });
 
