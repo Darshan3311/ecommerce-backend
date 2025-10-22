@@ -59,7 +59,7 @@ services:
       
       # Frontend Configuration - REQUIRED: For CORS
       - key: FRONTEND_URL
-        sync: false
+        value: https://ecommerce-frontend-2-a2w2.onrender.com
       
       # Session Secret - Auto-generated
       - key: SESSION_SECRET
