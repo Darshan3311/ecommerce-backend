@@ -2,14 +2,34 @@ const cloudinary = require('cloudinary').v2;
 
 class CloudinaryConfig {
   static configure() {
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-      secure: true
-    });
+    // Support an all-in-one CLOUDINARY_URL (cloudinary://API_KEY:API_SECRET@CLOUD_NAME)
+    // which is convenient for hosting platforms like Render, and fall back to
+    // individual env vars when not present.
+    const cloudinaryUrl = process.env.CLOUDINARY_URL;
+    const config = {};
 
-    console.log('✅ Cloudinary configured successfully');
+    if (cloudinaryUrl) {
+      // Let cloudinary.parse or cloudinary.config handle the URL
+      try {
+        cloudinary.config({ url: cloudinaryUrl, secure: true });
+        console.log('✅ Cloudinary configured from CLOUDINARY_URL');
+        return;
+      } catch (err) {
+        console.warn('⚠ Failed to configure Cloudinary from CLOUDINARY_URL, falling back to individual vars');
+      }
+    }
+
+    config.cloud_name = process.env.CLOUDINARY_CLOUD_NAME;
+    config.api_key = process.env.CLOUDINARY_API_KEY;
+    config.api_secret = process.env.CLOUDINARY_API_SECRET;
+    config.secure = true;
+
+    if (!config.cloud_name || !config.api_key || !config.api_secret) {
+      console.warn('⚠ Cloudinary environment variables are missing or incomplete. Image uploads will fail until CLOUDINARY_URL or individual keys are set.');
+    }
+
+    cloudinary.config(config);
+    console.log('✅ Cloudinary configured (from individual env vars if provided)');
   }
 
   static async uploadImage(file, folder = 'ecommerce') {
