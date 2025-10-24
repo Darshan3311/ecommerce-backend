@@ -139,7 +139,7 @@ class EmailConfig {
             <p>Thank you for your order!</p>
             <div class="order-details">
               <h2>Order #${orderDetails.orderId}</h2>
-              <p><strong>Total:</strong> $${orderDetails.total}</p>
+              <p><strong>Total:</strong> ₹${orderDetails.total}</p>
               <p><strong>Status:</strong> ${orderDetails.status}</p>
             </div>
             <p>You will receive a shipping confirmation when your items are shipped.</p>
