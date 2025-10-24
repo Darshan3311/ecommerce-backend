@@ -72,10 +72,31 @@ class Server {
     // Security middleware
     this.app.use(helmet());
     // Rate limiting - will be applied after CORS so preflight requests
-    // receive the proper CORS headers. (registered below)
-    const limiter = rateLimit({
+    // receive the proper CORS headers. We use two limiters:
+    //  - authLimiter: higher capacity for auth endpoints (login/me) because
+    //    client apps often poll or call these during init and we don't want
+    //    benign client behavior to cause 429s.
+    //  - generalLimiter: default limits for the rest of the API surface.
+    const authLimiter = rateLimit({
+      windowMs: 60 * 1000, // 1 minute
+      max: 60, // allow more auth-related requests per minute
+      standardHeaders: true,
+      legacyHeaders: false,
+      handler: (req, res) => {
+        console.warn(`Rate limit hit (auth) for ${req.ip} ${req.method} ${req.originalUrl}`);
+        res.status(429).json({ status: 'error', message: 'Too many requests (auth). Please try again later.' });
+      }
+    });
+
+    const generalLimiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100 // limit each IP to 100 requests per windowMs
+      max: 100, // limit each IP to 100 requests per windowMs
+      standardHeaders: true,
+      legacyHeaders: false,
+      handler: (req, res) => {
+        console.warn(`Rate limit hit (general) for ${req.ip} ${req.method} ${req.originalUrl}`);
+        res.status(429).json({ status: 'error', message: 'Too many requests. Please try again later.' });
+      }
     });
 
     // CORS
@@ -132,8 +153,10 @@ class Server {
       optionsSuccessStatus: 200
     }));
 
-  // Apply rate limiter after CORS so OPTIONS preflight requests are not blocked
-  this.app.use('/api', limiter);
+  // Apply the auth limiter to auth routes and the general limiter to other API routes.
+  // This must be registered after CORS above so preflight requests receive proper headers.
+  this.app.use('/api/auth', authLimiter);
+  this.app.use('/api', generalLimiter);
 
     // Log origin of incoming requests for easier debugging in deployed environments
     this.app.use((req, res, next) => {

@@ -322,10 +322,11 @@ class SellerController {
           totalProducts: productCount,
           totalOrders: orders.length,
           totalRevenue: parseFloat(revenue.toFixed(2)),
-          pendingOrders: orders.filter(o => o.status === 'processing').length,
+          pendingOrders: orders.filter(o => o.orderStatus === 'processing').length,
           rating: avgRating.toFixed(1),
           totalReviews: reviews.length,
           seller: {
+            _id: seller._id,
             businessName: seller.businessName,
             verificationStatus: seller.verificationStatus,
             isApproved: seller.isApproved

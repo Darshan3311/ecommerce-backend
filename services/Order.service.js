@@ -32,19 +32,34 @@ class OrderService {
       }
 
       // Prepare order items
-      const orderItems = cart.items.map(item => {
-        return {
+      const orderItems = [];
+      for (const item of cart.items) {
+        // Prefer seller from populated product (cart is populated with items.product),
+        // fallback to productListing lookup if provided.
+        let sellerId = null;
+        if (item.product && item.product.seller) {
+          sellerId = item.product.seller;
+        } else if (item.productListing) {
+          try {
+            const listing = await ProductListing.findById(item.productListing).select('seller');
+            if (listing) sellerId = listing.seller;
+          } catch (e) {
+            // ignore lookup errors and leave seller null
+          }
+        }
+
+        orderItems.push({
           product: item.product?._id || item.product,
           productListing: item.productListing || null,
           productVariant: item.productVariant || null,
-          seller: item.seller || null,
+          seller: sellerId || null,
           productName: item.product?.name || '',
           variantName: '',
           quantity: item.quantity,
           priceAtPurchase: item.price,
           status: 'pending'
-        };
-      });
+        });
+      }
 
       // Generate order number
       const date = new Date();
@@ -92,6 +107,19 @@ class OrderService {
             await prod.save();
           }
         }
+        // If this cart item referenced a ProductListing, also update its stockQuantity
+        if (item.productListing) {
+          try {
+            const listing = await ProductListing.findById(item.productListing);
+            if (listing && listing.stockQuantity != null) {
+              listing.stockQuantity = Math.max(0, (listing.stockQuantity || 0) - item.quantity);
+              if (listing.stockQuantity <= 0) listing.isAvailable = false;
+              await listing.save();
+            }
+          } catch (e) {
+            // ignore listing update errors
+          }
+        }
       }
 
       // Clear cart
@@ -111,7 +139,7 @@ class OrderService {
         }
       }
 
-      return await order.populate('items.product');
+  return await order.populate([ 'items.product', 'items.seller' ]);
     } catch (error) {
       throw error;
     }
@@ -239,7 +267,8 @@ class OrderService {
         .populate([
           { path: 'user', select: 'firstName lastName email' },
           { path: 'items.product' },
-          { path: 'items.productVariant' }
+          { path: 'items.productVariant' },
+          { path: 'items.seller' }
         ])
         .sort('-createdAt')
         .skip(skip)
